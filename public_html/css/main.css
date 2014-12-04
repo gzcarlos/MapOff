@@ -5,6 +5,21 @@
    ========================================================================== */
 
 
+root{
+    display: none;
+}
+
+.menu{
+    float: right;
+    width: 150px;
+}
+
+#btnLaunch{
+    margin-left: auto;
+    margin-right: auto;
+}
+
+
 
 
 
