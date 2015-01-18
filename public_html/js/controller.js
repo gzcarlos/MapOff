@@ -2,7 +2,7 @@
 //18.5032637,-69.8489928 18.5032573,-69.848409
 
 //globals
-var startPoint = new google.maps.LatLng(14.993077, -75.278870);// B = Longitude, k = latitude
+var startPoint = new google.maps.LatLng(14.993077, -75.278870);// D = Longitude, k = latitude
 var map;
 var interval;
 var plane;
@@ -144,9 +144,11 @@ function setAirplaneDirection(airplane) {
 }
 function addAirportEListener(marker){
     google.maps.event.addListener(marker, 'click', function() { // never add it through an array
-            createAnAirplane(marker.get('map'), airports, marker.getTitle());
-            console.log("title: " + marker.getTitle());
+            if(airplanes.length === 0){
+                createAnAirplane(marker.get('map'), airports, marker.getTitle());
+                console.log("title: " + marker.getTitle());
 //            console.log("Clicked airport index: " + marker.airportIndex);
+            }
         });
 }
 function startInterval() {
@@ -155,8 +157,11 @@ function startInterval() {
 function ticker() {
     if (airplanes.length > 0) {
         for (var i = 0; i < airplanes.length; ++i) {
-
+            moveAirplane(airplanes[0], 0.090000);
         }
+
+    // testing lines
+    
     } else {
         console.log('No Airplanes flying');
     }
@@ -200,6 +205,41 @@ function createAnAirplane(m, as, title) {
 //    console.log(plane.getTitle());
 //    console.log(plane);
     airplanes.push(plane);
+}
+function getAirplpaneDirection(airplane){
+    var latDirection = 1, lngDirection = 1;
+//    console.log("dif: " + Math.abs(Math.abs(airplane.to[2]) - Math.abs(airplane.getPosition().D)));
+    console.log("rads: " + Math.abs(Math.abs(airplane.to[2]) - Math.abs(airplane.getPosition().D)).toRadians());
+    
+    // **stop condition** -> up/right condition - > down/left condition
+    if(Math.abs(Math.abs(airplane.to[1]) - Math.abs(airplane.getPosition().k)) < 0.050000){
+        latDirection = 0;
+    }
+    else if(airplane.to[1] > airplane.getPosition().k){
+        latDirection = 1;
+    }else if(airplane.to[1] < airplane.getPosition().k){
+        latDirection = -1;
+    }
+    
+    if(Math.abs(Math.abs(airplane.to[2]) - Math.abs(airplane.getPosition().D)) < 0.050000){
+        lngDirection = 0;
+    }
+    else if(airplane.to[2] > airplane.getPosition().D){
+        lngDirection = 1;
+    }else if(airplane.to[2] < airplane.getPosition().D){
+        lngDirection = -1;
+    }
+    return {lat: latDirection, lng: lngDirection};
+}
+function moveAirplane(airplane, vel){
+    var lat = airplane.getPosition().k;
+    var lng = airplane.getPosition().D;
+    var directions = getAirplpaneDirection(airplane);
+    
+    lat += (directions.lat * vel);
+    lng += (directions.lng * vel);
+    
+    airplane.setPosition(new google.maps.LatLng(lat, lng));
 }
 
 
