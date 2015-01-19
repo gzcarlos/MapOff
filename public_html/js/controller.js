@@ -144,11 +144,11 @@ function setAirplaneDirection(airplane) {
 }
 function addAirportEListener(marker){
     google.maps.event.addListener(marker, 'click', function() { // never add it through an array
-            if(airplanes.length === 0){
+//            if(airplanes.length === 0){
                 createAnAirplane(marker.get('map'), airports, marker.getTitle());
                 console.log("title: " + marker.getTitle());
 //            console.log("Clicked airport index: " + marker.airportIndex);
-            }
+//            }
         });
 }
 function startInterval() {
@@ -157,7 +157,8 @@ function startInterval() {
 function ticker() {
     if (airplanes.length > 0) {
         for (var i = 0; i < airplanes.length; ++i) {
-            moveAirplane(airplanes[0], 0.090000);
+            moveAirplane(airplanes[i], 0.090000);
+            checkPosibleCollision(airplanes, i);
         }
 
     // testing lines
@@ -208,8 +209,8 @@ function createAnAirplane(m, as, title) {
 }
 function getAirplpaneDirection(airplane){
     var latDirection = 1, lngDirection = 1;
-//    console.log("dif: " + Math.abs(Math.abs(airplane.to[2]) - Math.abs(airplane.getPosition().D)));
-    console.log("rads: " + Math.abs(Math.abs(airplane.to[2]) - Math.abs(airplane.getPosition().D)).toRadians());
+    
+//    console.log("rads: " + Math.abs(Math.abs(airplane.to[2]) - Math.abs(airplane.getPosition().D)));
     
     // **stop condition** -> up/right condition - > down/left condition
     if(Math.abs(Math.abs(airplane.to[1]) - Math.abs(airplane.getPosition().k)) < 0.050000){
