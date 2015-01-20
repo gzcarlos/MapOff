@@ -5,7 +5,9 @@
 var startPoint = new google.maps.LatLng(14.993077, -75.278870);// D = Longitude, k = latitude
 var map; // global for the GMap object
 var interval; // interval for over time action-making
-var plane;
+var zOrderCounter = 1;
+var movementSpeed = 1; // secs
+var flightNumber = 1;
 var aPorts = [];
 var airports = [
     ['La Chinita', 10.554462, -71.724090], // venezuela
@@ -67,8 +69,7 @@ var typesAirplane = [
     } // MX = 505,MA = 25000 FT, MaxFuel = 4239 gal, consumption 1.43
 ];
 var airplanes = [];
-// structures
-
+var landedPlanes = 0, accidentedPlanes = 0;
 
 //functions 
 function initialize() {
@@ -116,11 +117,13 @@ function setAirports(m, as) { // MODIFY: load each airport in individual variabl
             map: m,
             icon: images[2],
             title: as[i][0],
-            airportIndex: i
+            airportIndex: i,
+            zIndex: zOrderCounter
         });
         // add its own event listener
         addAirportEListener(marker); // ADVICE: always use a function to set the Listener of each marker
         aPorts.push(marker);
+        zOrderCounter++;
     }
 }
 function addAirportEListener(marker){
@@ -136,18 +139,23 @@ function changeIcon(marker, img){
     marker.setIcon(img);
 }
 function startInterval() {
-    interval = setInterval(ticker, 1000);
+    interval = setInterval(ticker, 1000 * movementSpeed);
 }
 function ticker() {
     if (airplanes.length > 0) {
         for (var i = 0; i < airplanes.length; ++i) {
-            var collisions = detectPosibleCollision(airplanes, i).length;
-            moveAirplane(airplanes[i])//, 0.090000);
-            if( collisions > 0){
-                changeIcon(airplanes[i],''); // possible collision
-                preventCollision(airplanes, i, collisions);
-            }else{
-//                airplanes[i].setIcon = images[1].url; // normal plane
+            if(!airplanes[i].properties.landed){ // if landed
+                var collisions = detectPosibleCollision(airplanes, i);
+//                console.log("collisions: " + collisions);
+                
+                if( collisions.length > 0){ // got possible collisions
+                    changeIcon(airplanes[i],images[3].url); // possible collision
+                    preventCollision(airplanes[i], collisions, aPorts);
+                }else{
+                changeIcon(airplanes[i], images[1].url); // normal plane
+                }
+                
+                moveAirplane(airplanes[i]);//, 0.090000);
             }
         }
 
@@ -184,38 +192,58 @@ function createAnAirplane(m, as, title) {
         position: airplanePos,
         map: m,
         icon: images[1],
-        title: '[' + chosenPlane.name + ']\n'//,
-//                zIndex: 0 - i
+        title: '('+flightNumber+')[' + chosenPlane.name + ']\n',
+        zIndex: zOrderCounter
     });
 //    console.log(plane);
     plane.from = fromo;
     plane.to = too;
+    plane.oldTo = too;
     plane.properties = createAirplaneProperties(chosenPlane.name, chosenPlane.maxSpeed,
                             chosenPlane.maxAltitude, chosenPlane.fuelCapacity, chosenPlane.fuelConsumption);
-                            
+    plane.flightNumber = flightNumber;                        
 
 //    console.log(plane.getTitle());
-    console.log(plane);
+//    console.log(plane);
     airplanes.push(plane);
+    zOrderCounter++;
+    flightNumber++;
 }
 function moveAirplane(airplane){
     var lat = airplane.getPosition().k;
     var lng = airplane.getPosition().D;
     var directions = getAirplpaneDirection(airplane);
-    var actualAltitude = airplane.properties.actualAltitude;
-    var maxAltitude = airplane.properties.maxAltitude;
-    var vel = ((actualAltitude !== maxAltitude)?airplane.properties.maxSpeed/2:airplane.properties.maxSpeed)/10000;
+    
+    // part of the collision prevention
+    if(airplane.properties.proximitySkips !== 0){
+        airplane.properties.proximitySkips--;
+    }else{
+        // switch back to original destination
+        airplane = switchBackDestination(airplane);
+    }
+    
+    if(directions.lat === 0 && directions.lng === 0){
+        airplane.properties.landed = true;
+        ++landedPlanes;
+//        console.log("landed!!");
+    }else{
+        var actualAltitude = airplane.properties.actualAltitude;
+        var maxAltitude = airplane.properties.maxAltitude;
+        var vel = ((actualAltitude !== maxAltitude)?airplane.properties.maxSpeed/2:airplane.properties.maxSpeed)/10000;
+
+
+        // apply movement
+        lat += (directions.lat * vel); // update latitude
+        lng += (directions.lng * vel); // update longitude
+        airplane.properties.actualAltitude += (actualAltitude !== maxAltitude)?maxAltitude/4:0; // update altitude
+        airplane.properties.actualFuel -= airplane.properties.fuelConsumption; // update fuel
+
+        airplane.setPosition(new google.maps.LatLng(lat, lng));
+//        console.log("aAltitude: " + actualAltitude+", mAlt: "+maxAltitude+", vel: "+ vel + ", fuel: " + airplane.properties.actualFuel);
+    //    console.log("lat: " + lat+", lng: " + lng);
+    }
     
     
-    // apply movement
-    lat += (directions.lat * vel); // update latitude
-    lng += (directions.lng * vel); // update longitude
-    airplane.properties.actualAltitude += (actualAltitude !== maxAltitude)?maxAltitude/4:0; // update altitude
-    airplane.properties.actualFuel -= airplane.properties.fuelConsumption; // update fuel
-    
-    airplane.setPosition(new google.maps.LatLng(lat, lng));
-    console.log("aAltitude: " + actualAltitude+", mAlt: "+maxAltitude+", vel: "+ vel + ", fuel: " + airplane.properties.actualFuel);
-//    console.log("lat: " + lat+", lng: " + lng);
 }
 
 
