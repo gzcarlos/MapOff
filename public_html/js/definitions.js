@@ -11,6 +11,7 @@ function Airplane(name, maxSpeed, maxAltitude, fuelCapacity, fuelConsumption){
     this.actualFuel = fuelCapacity;
     this.actualSpeed = 0;
     this.landed = false;
+    this.proximitySkips = 0;
 }
 
 //------------------------- FUNCTIONS -------------------------//
@@ -26,19 +27,28 @@ function detectPosibleCollision(airplanes, index){
 //    console.log(planeLat);
     
     // 
-    for(i = 0; i < airplanes.length && i !== index; ++i){
+    for(var i = 0; i < airplanes.length && i !== index; ++i){
         if(getDistance(airplanes[i].getPosition(), planePosition) <  0.600000 ){
-            console.error("ap["+index+"]: collision detected with #" + i);
-            result.push[i];
+            console.error("ap["+airplanes[index].flightNumber+"]: collision detected with #" + airplanes[i].flightNumber);
+
+            result.push(i);
+            
         }
     }
-
+    
+    
     return result;
 }
-function preventCollision(airplanes, index, collisions){
+function preventCollision(airplane, collisions, airports){
     /* Makes evasive movements in the plane with the given index.
      * Take the possible collitions to make such movements.
      */
+    
+    airplane.properties.proximitySkips = 10;
+//     change direction
+    airplane.oldTo =  airplane.to;
+    airplane = getOtherDestination(airplane, airports);
+
 }
 function getDifference(A, B){
     return Math.abs(Math.abs(A) - Math.abs(B));
@@ -94,6 +104,19 @@ function toRadians(val){
 }
 function createAirplaneProperties(name, maxSpeed, maxAltitude, fuelCapacity, fuelConsumption){
     return new Airplane(name, maxSpeed, maxAltitude, fuelCapacity, fuelConsumption);
+}
+function getOtherDestination(airplane, airports){
+    for(var i = 0; i < airports.length; ++i){
+        // if airport isnt origin or destination
+        if(airports[i][0] !== airplane.to[0] && airports.from[0] !== airplane.from[0]){
+            airplane.to = airports[i];
+        }
+    }
+    return airplane;
+}
+function switchBackDestination(airplane){
+    airplane.to = airplane.oldTo; // this crashed line 83.
+    return airplane;
 }
 function getRandomPercentOf(value){
     /*

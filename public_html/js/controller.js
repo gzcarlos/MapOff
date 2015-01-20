@@ -145,13 +145,14 @@ function ticker() {
     if (airplanes.length > 0) {
         for (var i = 0; i < airplanes.length; ++i) {
             if(!airplanes[i].properties.landed){ // if landed
-                var collisions = detectPosibleCollision(airplanes, i).length;
-                moveAirplane(airplanes[i])//, 0.090000);
-                if( collisions > 0){
-                    changeIcon(airplanes[i],''); // possible collision
-                    preventCollision(airplanes, i, collisions);
+                var collisions = detectPosibleCollision(airplanes, i);
+//                console.log("collisions: " + collisions);
+                moveAirplane(airplanes[i]);//, 0.090000);
+                if( collisions.length > 0){ // got possible collisions
+                    changeIcon(airplanes[i],images[3].url); // possible collision
+                    preventCollision(airplanes[i], collisions, aPorts);
                 }else{
-//                airplanes[i].setIcon = images[1].url; // normal plane
+                changeIcon(airplanes[i], images[1].url); // normal plane
                 }
             }
         }
@@ -195,6 +196,7 @@ function createAnAirplane(m, as, title) {
 //    console.log(plane);
     plane.from = fromo;
     plane.to = too;
+    plane.oldTo = too;
     plane.properties = createAirplaneProperties(chosenPlane.name, chosenPlane.maxSpeed,
                             chosenPlane.maxAltitude, chosenPlane.fuelCapacity, chosenPlane.fuelConsumption);
     plane.flightNumber = flightNumber;                        
@@ -209,6 +211,14 @@ function moveAirplane(airplane){
     var lat = airplane.getPosition().k;
     var lng = airplane.getPosition().D;
     var directions = getAirplpaneDirection(airplane);
+    
+    // part of the collision prevention
+    if(airplane.properties.proximitySkips !== 0){
+        airplane.properties.proximitySkips--;
+    }else{
+        // switch back to original destination
+        airplane = switchBackDestination(airplane);
+    }
     
     if(directions.lat === 0 && directions.lng === 0){
         airplane.properties.landed = true;
@@ -230,6 +240,8 @@ function moveAirplane(airplane){
 //        console.log("aAltitude: " + actualAltitude+", mAlt: "+maxAltitude+", vel: "+ vel + ", fuel: " + airplane.properties.actualFuel);
     //    console.log("lat: " + lat+", lng: " + lng);
     }
+    
+    
 }
 
 
