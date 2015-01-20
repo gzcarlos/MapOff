@@ -3,8 +3,8 @@
 
 //globals
 var startPoint = new google.maps.LatLng(14.993077, -75.278870);// D = Longitude, k = latitude
-var map;
-var interval;
+var map; // global for the GMap object
+var interval; // interval for over time action-making
 var plane;
 var aPorts = [];
 var airports = [
@@ -35,12 +35,36 @@ var images = [
         size: new google.maps.Size(30, 30),
         origin: new google.maps.Point(0, 0),
         anchor: new google.maps.Point(0, 32)
+    },
+    {
+        url: 'img/plane-collision.png',
+        size: new google.maps.Size(30, 30),
+        origin: new google.maps.Point(0, 0),
+        anchor: new google.maps.Point(0, 32)
     }
 ];
 var typesAirplane = [
-    'Airbus 310', //MX = 905,MA = 41000 FT
-    'Boeing 737-800',// MX = 876, MA = 41000 FT
-    'DC-9-21' // MX = 915,MA = 25000 FT
+    {
+        name: 'Airbus A310',
+        maxSpeed: 905,
+        maxAltitude: 41000,
+        fuelCapacity: 14600,
+        fuelConsumptioin: 20.7
+    }, //MX = 905,MA = 41000 FT, MaxFuel = 14600 gal, consumption = 20.7 p/km//
+    {
+        name: 'Boeing 737-800',
+        maxSpeed: 876,
+        maxAltitude: 41000,
+        fuelCapacity: 6875,
+        fuelConsumption: 4.88
+    },// MX = 876, MA = 41000 FT, MaxFuel = 6875 gal, consumption = 4.88 g/h 792
+    {
+        name: 'DC-9-30',
+        maxSpeed: 505,
+        maxAltitude: 25000,
+        fuelCapacity: 4239,
+        fuelConsumption: 1.43
+    } // MX = 505,MA = 25000 FT, MaxFuel = 4239 gal, consumption 1.43
 ];
 var airplanes = [];
 // structures
@@ -73,6 +97,8 @@ function initialize() {
 
     setAirports(map, airports);
     startInterval();
+    
+//    testingPlanes(map);
 
 //    setAirplanes(map, airports2, typesAirplane);
 //    interval = setInterval(ticker, 1000);
@@ -97,51 +123,6 @@ function setAirports(m, as) { // MODIFY: load each airport in individual variabl
         aPorts.push(marker);
     }
 }
-function setAirplanes(m, as, ap) { // useless
-
-    for (var i = 0; i < ap.length; ++i) {
-//        setTimeout(function() {
-        // about airport
-        var aport = as;
-        var APortFrom = Math.floor(Math.random() * aport.length); // random airport of origin
-        var fromo = aport[APortFrom];
-        aport.pop(APortFrom); // remove the already selected for origin
-        var APortTo = Math.floor(Math.random() * aport.length); // random airport of destination
-        var too = aport[APortTo];
-
-        //about airplane
-        var airplanePos = new google.maps.LatLng(fromo[1] + 0.001, fromo[2]); // starting position of the airplane
-        var rndType = Math.floor(Math.random() * ap.length); // the random type of airpplane
-
-        // marker
-//            console.log(images[1]);
-        var plane = new google.maps.Marker({
-            position: airplanePos,
-            map: m,
-            icon: images[1],
-            title: typesAirplane[rndType]//,
-//                zIndex: 0 - i
-        });
-
-//        console.log(plane.getTitle());
-        airplanes.push(plane);
-//        }, 50); // end of setTimout
-    }
-//    setTimeout(function() {
-//    console.log(airplanes);
-//    }, 175); // end of time out
-}
-function setAirplaneDirection(airplane) {
-    if (airplane.from[0] > airplane.to[0]) { // latitude greater
-        airplane.LatVel = -airplane.LatVel; // invert speed direction;
-    }
-
-    if (airplane.from[1] > airplane.to[1]) { // longitude greater
-        airplane.LonVel = -airplane.LonVel; //  invert speed direction;
-    }
-    
-    return airplane;
-}
 function addAirportEListener(marker){
     google.maps.event.addListener(marker, 'click', function() { // never add it through an array
 //            if(airplanes.length === 0){
@@ -151,14 +132,23 @@ function addAirportEListener(marker){
 //            }
         });
 }
+function changeIcon(marker, img){
+    marker.setIcon(img);
+}
 function startInterval() {
     interval = setInterval(ticker, 1000);
 }
 function ticker() {
     if (airplanes.length > 0) {
         for (var i = 0; i < airplanes.length; ++i) {
-            moveAirplane(airplanes[i], 0.090000);
-            checkPosibleCollision(airplanes, i);
+            var collisions = detectPosibleCollision(airplanes, i).length;
+            moveAirplane(airplanes[i])//, 0.090000);
+            if( collisions > 0){
+                changeIcon(airplanes[i],''); // possible collision
+                preventCollision(airplanes, i, collisions);
+            }else{
+//                airplanes[i].setIcon = images[1].url; // normal plane
+            }
         }
 
     // testing lines
@@ -171,7 +161,7 @@ function createAnAirplane(m, as, title) {
     // about airport
     var aport = as.slice(0);
     var fromo;
-    var APortTo; // random airport of destination
+    var APortTo; // random airport for destination
     var too;
     
     //remove the from airPlane with title
@@ -184,79 +174,46 @@ function createAnAirplane(m, as, title) {
 //    console.log('as: ' + as);
     APortTo = Math.floor(Math.random() * aport.length); // random airport of destination
     too = aport[APortTo];
-//    console.log('from: ' + fromo[0] + ' to: ' + too[0]);
 
     //about airplane - settup
     var airplanePos = new google.maps.LatLng(fromo[1], fromo[2]); // starting position of the airplane
     var rndType = Math.floor(Math.random() * typesAirplane.length); // the random type of airpplane
-
+    var chosenPlane = typesAirplane[rndType];
     // marker for the plane
-//            console.log(images[1]);
     var plane = new google.maps.Marker({
         position: airplanePos,
         map: m,
         icon: images[1],
-        title: '[' + typesAirplane[rndType] + ']\n'//,
+        title: '[' + chosenPlane.name + ']\n'//,
 //                zIndex: 0 - i
     });
-    console.log(plane);
+//    console.log(plane);
     plane.from = fromo;
     plane.to = too;
+    plane.properties = createAirplaneProperties(chosenPlane.name, chosenPlane.maxSpeed,
+                            chosenPlane.maxAltitude, chosenPlane.fuelCapacity, chosenPlane.fuelConsumption);
+                            
 
 //    console.log(plane.getTitle());
-//    console.log(plane);
+    console.log(plane);
     airplanes.push(plane);
 }
-function getAirplpaneDirection(airplane){
-    var latDirection = 1, lngDirection = 1;
-    
-//    console.log("rads: " + Math.abs(Math.abs(airplane.to[2]) - Math.abs(airplane.getPosition().D)));
-    
-    // **stop condition** -> up/right condition - > down/left condition
-    if(Math.abs(Math.abs(airplane.to[1]) - Math.abs(airplane.getPosition().k)) < 0.050000){
-        latDirection = 0;
-    }
-    else if(airplane.to[1] > airplane.getPosition().k){
-        latDirection = 1;
-    }else if(airplane.to[1] < airplane.getPosition().k){
-        latDirection = -1;
-    }
-    
-    if(Math.abs(Math.abs(airplane.to[2]) - Math.abs(airplane.getPosition().D)) < 0.050000){
-        lngDirection = 0;
-    }
-    else if(airplane.to[2] > airplane.getPosition().D){
-        lngDirection = 1;
-    }else if(airplane.to[2] < airplane.getPosition().D){
-        lngDirection = -1;
-    }
-    return {lat: latDirection, lng: lngDirection};
-}
-function moveAirplane(airplane, vel){
+function moveAirplane(airplane){
     var lat = airplane.getPosition().k;
     var lng = airplane.getPosition().D;
     var directions = getAirplpaneDirection(airplane);
+    var actualAltitude = airplane.properties.actualAltitude;
+    var maxAltitude = airplane.properties.maxAltitude;
+    var vel = ((actualAltitude !== maxAltitude)?airplane.properties.maxSpeed/2:airplane.properties.maxSpeed)/10000;
     
     lat += (directions.lat * vel);
     lng += (directions.lng * vel);
+    airplane.properties.actualAltitude += (actualAltitude !== maxAltitude)?maxAltitude/4:0;
     
     airplane.setPosition(new google.maps.LatLng(lat, lng));
+    console.log("aAltitude: " + actualAltitude+", mAlt: "+maxAltitude+", vel: "+ vel);
+//    console.log("lat: " + lat+", lng: " + lng);
 }
-
-
-//event listeners
-//google.maps.event.addListener(aPorts[0], 'click', function() { // never add it through an array
-////            createAnAirplane(map, airports, marker.getTitle());
-//    console.log('clicked1');
-//});
-//google.maps.event.addListener(marker, 'click', function() { // never add it through an array
-////            createAnAirplane(map, airports, marker.getTitle());
-//    console.log('clicked2');
-//});
-//google.maps.event.addListener(marker, 'click', function() { // never add it through an array
-////            createAnAirplane(map, airports, marker.getTitle());
-//    console.log('clicked3');
-//});
 
 
 // init
