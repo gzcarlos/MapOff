@@ -49,7 +49,7 @@ var typesAirplane = [
         maxSpeed: 905,
         maxAltitude: 41000,
         fuelCapacity: 14600,
-        fuelConsumptioin: 20.7
+        fuelConsumption: 20.7
     }, //MX = 905,MA = 41000 FT, MaxFuel = 14600 gal, consumption = 20.7 p/km//
     {
         name: 'Boeing 737-800',
@@ -206,12 +206,15 @@ function moveAirplane(airplane){
     var maxAltitude = airplane.properties.maxAltitude;
     var vel = ((actualAltitude !== maxAltitude)?airplane.properties.maxSpeed/2:airplane.properties.maxSpeed)/10000;
     
-    lat += (directions.lat * vel);
-    lng += (directions.lng * vel);
-    airplane.properties.actualAltitude += (actualAltitude !== maxAltitude)?maxAltitude/4:0;
+    
+    // apply movement
+    lat += (directions.lat * vel); // update latitude
+    lng += (directions.lng * vel); // update longitude
+    airplane.properties.actualAltitude += (actualAltitude !== maxAltitude)?maxAltitude/4:0; // update altitude
+    airplane.properties.actualFuel -= airplane.properties.fuelConsumption; // update fuel
     
     airplane.setPosition(new google.maps.LatLng(lat, lng));
-    console.log("aAltitude: " + actualAltitude+", mAlt: "+maxAltitude+", vel: "+ vel);
+    console.log("aAltitude: " + actualAltitude+", mAlt: "+maxAltitude+", vel: "+ vel + ", fuel: " + airplane.properties.actualFuel);
 //    console.log("lat: " + lat+", lng: " + lng);
 }
 
