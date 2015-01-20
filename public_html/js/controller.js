@@ -147,13 +147,15 @@ function ticker() {
             if(!airplanes[i].properties.landed){ // if landed
                 var collisions = detectPosibleCollision(airplanes, i);
 //                console.log("collisions: " + collisions);
-                moveAirplane(airplanes[i]);//, 0.090000);
+                
                 if( collisions.length > 0){ // got possible collisions
                     changeIcon(airplanes[i],images[3].url); // possible collision
                     preventCollision(airplanes[i], collisions, aPorts);
                 }else{
                 changeIcon(airplanes[i], images[1].url); // normal plane
                 }
+                
+                moveAirplane(airplanes[i]);//, 0.090000);
             }
         }
 
